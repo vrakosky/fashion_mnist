@@ -8,10 +8,9 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, TensorBoard
 from keras.layers import Dense, Dropout, Conv2D, MaxPooling2D, Flatten, Lambda, SpatialDropout2D
 
-#------------- Setting network parameters
 epochs = 1
 num_classes = 10
-batch_size = 512
+batch_size = 300
 input_shape = (28, 28, 1)
 filepath = "cnn_model_best.hdf5"
 
@@ -29,17 +28,31 @@ print(x_test.shape[0], 'test samples')
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
+#------------- Checkpoint
+checkpointer = ModelCheckpoint(filepath=filepath, verbose=1, monitor="val_acc", save_best_only=True)
 
-#------------- Model
+#------------- Tensorboard
+tensorboard = TensorBoard(log_dir='./logs', histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None, embeddings_data=None)
+
+#------------- Reduce Learning Rate Function
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, verbose=1, mode='auto', min_lr=0.00000001)
+
+#------------- Data Augmentation
+gen = ImageDataGenerator(horizontal_flip=True, zoom_range=0.15, shear_range=.1, fill_mode='nearest')
+
+#------------- MODEL
 model = Sequential()
-print(filepath)
 modelExist = os.path.exists(filepath)
 if(modelExist == True):
 	model = load_model(filepath)
 else:
-	model.add(Conv2D(32, kernel_size=(5, 5), activation='relu', input_shape=input_shape, padding='same'))
-	model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
-	model.add(Conv2D(64, (5, 5), padding='same', activation='relu'))
+	model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=input_shape, padding='same'))
+	model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same'))
+	model.add(MaxPooling2D(pool_size=(3, 3)))
+	model.add(SpatialDropout2D(0.25))
+
+	model.add(Conv2D(64, kernel_size=(3, 3), padding='same', activation='relu'))
+	model.add(Conv2D(128, kernel_size=(5, 5), padding='same', activation='relu'))
 	model.add(MaxPooling2D(pool_size=(3, 3)))
 	model.add(SpatialDropout2D(0.25))
 
@@ -51,43 +64,47 @@ else:
 model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(lr=0.001),metrics=['accuracy'])
 model.summary()
 
-	# Display evaluate
+#------------- Display evaluate
 score=model.evaluate(x_test, y_test, verbose=0)
+
+#------------- Display first iteration result
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-	# Learning 
-checkpointer=ModelCheckpoint(filepath=filepath, verbose=1, monitor="val_acc", save_best_only=True)
-tensorboard = keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None, embeddings_data=None)
+for i in range(0, 5):
+	#------------- Fit
+	model.fit(x_train, y_train,
+				epochs=epochs,
+				batch_size=batch_size,
+				verbose=1,
+				shuffle=True,
+				validation_data=(x_test, y_test),
+				callbacks=[tensorboard, checkpointer, reduce_lr])
 
-	# Reduce Learning Rate
+	#------------- Reinitinilize learning rate & Reload best model
+	model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(lr=0.001),metrics=['accuracy'])
+	model = load_model(filepath)
 
-model.fit(x_train, y_train,
-			epochs=epochs,
-			batch_size=batch_size,
-			verbose=1,
-			shuffle=True,
-			validation_data=(x_test, y_test),
-			callbacks=[tensorboard, checkpointer, reduce_lr])
-score=model.evaluate(x_test, y_test, verbose=0)
+	#------------- Fit Generator
+	batches = gen.flow(x_train, y_train, batch_size=batch_size)
+	model.fit_generator(batches, 
+						steps_per_epoch=len(x_train)/batch_size, 
+						epochs=epochs, 
+						validation_data=(x_test,y_test),
+						verbose=1,
+						shuffle=True,
+						validation_steps=10000//batch_size,
+						callbacks=[tensorboard, checkpointer, reduce_lr])
 
-# Reinitinilize learning rate
-model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(lr=0.001),metrics=['accuracy'])
-model = load_model(filepath)
+	#------------- Display last iteration result
+	print('Test loss:', score[0])
+	print('Test accuracy:', score[1])
 
-gen = ImageDataGenerator(zoom_range=0.1, horizontal_flip=True, fill_mode='nearest')
 
-batches = gen.flow(x_train, y_train, batch_size=batch_size)
-model.fit_generator(batches, 
-					steps_per_epoch=60000//batch_size, 
-					epochs=epochs, 
-					validation_data=(x_test,y_test),
-					shuffle=True,
-					validation_steps=10000//batch_size,
-					callbacks=[tensorboard, checkpointer])
-score=model.evaluate(x_test, y_test, verbose=0)
+#------------- Tensorboard
+#- python -m tensorboard.main --logdir="\logs"
 
-#------------- Pas besoin de decoded images dans ce cas
 
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
+# - ASTUCE
+# - Augmenter le batch
+# - Réduire le learning rate si il n'y a aucun changement : ReduceLROnPlateau
