@@ -32,6 +32,7 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 
 #------------- Model
 model = Sequential()
+
 print(filepath)
 modelExist = os.path.exists(filepath)
 if(modelExist == True):
@@ -40,8 +41,9 @@ else:
 
 	model.add(Conv2D(32, kernel_size=(5, 5), activation='relu', input_shape=input_shape, padding='same'))
 	model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
+	model.add(Conv2D(64, (5, 5), padding='same', activation='relu'))
 	model.add(MaxPooling2D(pool_size=(3, 3)))
-	model.add(Dropout(0.25))
+	model.add(SpatialDropout2D(0.25))
 
 	model.add(Flatten())
 	model.add(Dense(128, activation='relu'))
@@ -56,13 +58,9 @@ score=model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-	# checkpointer 
+	# Learning 
 checkpointer=ModelCheckpoint(filepath=filepath, verbose=1, monitor="val_acc", save_best_only=True)
 
-model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(lr=0.001),metrics=['accuracy'])
-model.summary()
-
-#------------- Learning
 model.fit(x_train, y_train,
 			epochs=epochs,
 			batch_size=batch_size,
@@ -72,10 +70,6 @@ model.fit(x_train, y_train,
 			callbacks=[checkpointer])
 score=model.evaluate(x_test, y_test, verbose=0)
 
-# Reinitinilize learning rate
-model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(lr=0.001),metrics=['accuracy'])
-model = load_model(filepath)
-
-
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
+
