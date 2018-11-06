@@ -61,7 +61,6 @@ checkpointer=ModelCheckpoint(filepath=filepath, verbose=1, monitor="val_acc", sa
 tensorboard = keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None, embeddings_data=None)
 
 	# Reduce Learning Rate
-reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=2, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0.0000001)
 
 model.fit(x_train, y_train,
 			epochs=epochs,
@@ -85,7 +84,7 @@ model.fit_generator(batches,
 					validation_data=(x_test,y_test),
 					shuffle=True,
 					validation_steps=10000//batch_size,
-					callbacks=[tensorboard, checkpointer, reduce_lr])
+					callbacks=[tensorboard, checkpointer])
 score=model.evaluate(x_test, y_test, verbose=0)
 
 #------------- Pas besoin de decoded images dans ce cas
