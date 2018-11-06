@@ -28,3 +28,27 @@ print(x_test.shape[0], 'test samples')
 #------------- Convert class vectors to binary class matrices
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
+
+
+#------------- Model
+model = Sequential([
+    Dense(512, input_shape=(784,), activation='relu'),
+    Dense(128, activation = 'relu'),
+    Dense(10, activation='softmax')
+])
+
+
+model.compile(optimizer=Adam(lr=0.001),
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+history = model.fit(X_train, y_train,
+                    batch_size=batch_size,
+                    epochs=20,
+                    verbose=1,
+                    validation_data=(X_val, y_val))
+
+
+score = model.evaluate(X_test, y_test, verbose=0)
+print('Test loss:', score[0])
+print('Test accuracy:', score[1])
