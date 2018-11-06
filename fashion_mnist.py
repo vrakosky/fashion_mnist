@@ -32,20 +32,16 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 
 #------------- Model
 model = Sequential()
-
 print(filepath)
 modelExist = os.path.exists(filepath)
 if(modelExist == True):
 	model = load_model(filepath)
 else:
-
 	model.add(Conv2D(32, kernel_size=(5, 5), activation='relu', input_shape=input_shape, padding='same'))
 	model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
 	model.add(Conv2D(64, (5, 5), padding='same', activation='relu'))
 	model.add(MaxPooling2D(pool_size=(3, 3)))
 	model.add(SpatialDropout2D(0.25))
-
-	# model.add(Dropout(0.25))
 
 	model.add(Flatten())
 	model.add(Dense(128, activation='relu'))
@@ -64,15 +60,35 @@ print('Test accuracy:', score[1])
 checkpointer=ModelCheckpoint(filepath=filepath, verbose=1, monitor="val_acc", save_best_only=True)
 tensorboard = keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None, embeddings_data=None)
 
+	# Reduce Learning Rate
+reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=2, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0.0000001)
+
 model.fit(x_train, y_train,
 			epochs=epochs,
 			batch_size=batch_size,
 			verbose=1,
 			shuffle=True,
 			validation_data=(x_test, y_test),
-			callbacks=[tensorboard, checkpointer])
+			callbacks=[tensorboard, checkpointer, reduce_lr])
 score=model.evaluate(x_test, y_test, verbose=0)
+
+# Reinitinilize learning rate
+model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(lr=0.001),metrics=['accuracy'])
+model = load_model(filepath)
+
+gen = ImageDataGenerator(zoom_range=0.1, horizontal_flip=True, fill_mode='nearest')
+
+batches = gen.flow(x_train, y_train, batch_size=batch_size)
+model.fit_generator(batches, 
+					steps_per_epoch=60000//batch_size, 
+					epochs=epochs, 
+					validation_data=(x_test,y_test),
+					shuffle=True,
+					validation_steps=10000//batch_size,
+					callbacks=[tensorboard, checkpointer, reduce_lr])
+score=model.evaluate(x_test, y_test, verbose=0)
+
+#------------- Pas besoin de decoded images dans ce cas
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
-
