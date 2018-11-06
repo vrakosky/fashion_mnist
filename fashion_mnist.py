@@ -31,46 +31,25 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 
 
 #------------- Model
-cnn4 = Sequential([
-    Lambda(norm_input, input_shape=(28,28, 1)),
-    Conv2D(32, kernel_size=(3, 3), activation='relu', padding='same', input_shape=input_shape),
-    Conv2D(32, kernel_size=(3, 3), activation='relu', padding='same'),
-    MaxPooling2D(pool_size=(2, 2)),
-    
-    
-    Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same'),
-    Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same'),    
-    MaxPooling2D(pool_size=(2, 2)),
-    
-    
-    Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same'),
-    Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same'),    
-    MaxPooling2D(pool_size=(2, 2)),
-    
-    
-    Conv2D(256, kernel_size=(3, 3), activation='relu', padding='same'),
-    Conv2D(256, kernel_size=(3, 3), activation='relu', padding='same'),
-    Conv2D(256, kernel_size=(3, 3), activation='relu', padding='same'),
-    MaxPooling2D(pool_size=(2, 2)),
+model = Sequential()
+model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=input_shape))
+model.add(Conv2D(64, (3, 3), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(num_classes, activation='softmax'))
 
-    Flatten(),
+model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(lr=0.001),metrics=['accuracy'])
+model.summary()
 
-    Dense(512, activation='relu'),
-    Dropout(0.5),
-    Dense(512, activation='relu'),
-    Dropout(0.5),
-    Dense(10, activation='softmax')
-])
-
-cnn4.compile(loss='sparse_categorical_crossentropy',
-              optimizer=Adam(lr=0.0001),
-              metrics=['accuracy'])
-
-cnn4.fit(x_train, y_train,
-          batch_size=batch_size,
-          epochs=10,
-          verbose=1,
-          validation_data=(x_test,y_test))
-
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
+#------------- Learning
+model.fit(x_train, y_train,
+			epochs=epochs,
+			batch_size=batch_size,
+			verbose=1,
+			shuffle=True,
+			validation_data=(x_test, y_test),
+			callbacks=[tensorboard, checkpointer, reduce_lr])
+score=model.evaluate(x_test, y_test, verbose=0)
