@@ -8,11 +8,11 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, TensorBoard
 from keras.layers import Dense, Dropout, Conv2D, MaxPooling2D, Flatten, Lambda, SpatialDropout2D
 
-epochs = 1
+epochs = 25
 num_classes = 10
 batch_size = 300
 input_shape = (28, 28, 1)
-filepath = "cnn_model_best.hdf5"
+filepath = "cnn_model_best_94.2.hdf5"
 
 #------------- Dataset of 60,000 28x28 training images & 10,000 28x28 test images.
 (x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
