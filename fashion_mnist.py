@@ -45,6 +45,8 @@ else:
 	model.add(MaxPooling2D(pool_size=(3, 3)))
 	model.add(SpatialDropout2D(0.25))
 
+	# model.add(Dropout(0.25))
+
 	model.add(Flatten())
 	model.add(Dense(128, activation='relu'))
 	model.add(Dropout(0.5))
@@ -60,6 +62,7 @@ print('Test accuracy:', score[1])
 
 	# Learning 
 checkpointer=ModelCheckpoint(filepath=filepath, verbose=1, monitor="val_acc", save_best_only=True)
+tensorboard = keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=0, batch_size=32, write_graph=True, write_grads=False, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None, embeddings_data=None)
 
 model.fit(x_train, y_train,
 			epochs=epochs,
@@ -67,7 +70,7 @@ model.fit(x_train, y_train,
 			verbose=1,
 			shuffle=True,
 			validation_data=(x_test, y_test),
-			callbacks=[checkpointer])
+			callbacks=[tensorboard, checkpointer])
 score=model.evaluate(x_test, y_test, verbose=0)
 
 print('Test loss:', score[0])
