@@ -31,27 +31,31 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 
 
 #------------- Model
-cnn1 = Sequential([
+
+cnn2 = Sequential([
     Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=input_shape),
     MaxPooling2D(pool_size=(2, 2)),
     Dropout(0.2),
+
+    Conv2D(64, kernel_size=(3, 3), activation='relu'),
+    MaxPooling2D(pool_size=(2, 2)),
+    Dropout(0.2),
+
+    Conv2D(128, kernel_size=(3, 3), activation='relu'),
+    Dropout(0.2),
+
     Flatten(),
+
     Dense(128, activation='relu'),
+    Dropout(0.2),
     Dense(10, activation='softmax')
 ])
 
-cnn1.compile(loss='sparse_categorical_crossentropy',
+cnn2.compile(loss='sparse_categorical_crossentropy',
               optimizer=Adam(lr=0.001),
               metrics=['accuracy'])
 
-history = model.fit(x_train, y_train,
-                    batch_size=batch_size,
-                    epochs=20,
-                    verbose=1,
-                    validation_data=(X_val, y_val))
-
-
-cnn1.fit(X_train, y_train,
+cnn2.fit(X_train, y_train,
           batch_size=batch_size,
           epochs=10,
           verbose=1,
