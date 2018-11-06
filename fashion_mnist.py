@@ -44,7 +44,7 @@ model.add(Dense(num_classes, activation='softmax'))
 
 model.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(lr=0.001),metrics=['accuracy'])
 model.summary()
-
+model.optimizer.lr = 0.0001
 model.fit(x_train, y_train,
 			epochs=epochs,
 			batch_size=batch_size,
